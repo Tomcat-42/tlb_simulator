@@ -29,8 +29,8 @@ impl<const T: usize> Tlb<T> {
         self.idx = (self.idx + 1) % T;
     }
 
-    pub fn clear(&mut self) {
-        self.entries = [None; T];
-        self.idx = 0;
-    }
+    // pub fn clear(&mut self) {
+    //     self.entries = [None; T];
+    //     self.idx = 0;
+    // }
 }

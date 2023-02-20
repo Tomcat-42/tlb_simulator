@@ -4,7 +4,6 @@ mod tests;
 mod tlb;
 
 use rand::seq::index;
-use rand::seq::SliceRandom;
 use rand::thread_rng;
 
 use tlb::Tlb;
@@ -33,6 +32,8 @@ where
             .into_vec()
             .try_into()
             .unwrap();
+        // let page_table: Box<[usize; usize::pow(2, M as u32) / usize::pow(2, N as u32)]> =
+        //     box [0; usize::pow(2, M as u32) / usize::pow(2, N as u32)];
 
         let tlb = Tlb::<T>::new();
 
