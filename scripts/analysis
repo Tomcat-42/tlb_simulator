@@ -1,0 +1,170 @@
+#!/usr/bin/env python
+import argparse
+import json
+import os
+import subprocess
+from typing import Iterable
+from typing import List
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+
+def plot_data(
+    xs: Iterable[Iterable],
+    ys: Iterable[Iterable],
+    legends: List[str],
+    colors: List[str],
+    x_label: str,
+    y_label: str,
+    title: str,
+    x_lim: int | None = None,
+    y_lim: int | None = None,
+    save_path: str | None = None,
+) -> None:
+    """
+    Plot a graph.
+    """
+
+    plt.figure(figsize=(16, 0.5 * len(xs[0]) + 0.5))
+    plt.title(title)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+
+    if x_lim:
+        plt.xlim(0, x_lim)
+    if y_lim:
+        plt.ylim(0, y_lim)
+
+    for x, y, color in zip(xs, ys, colors):
+        plt.plot(y, x, color=color)
+
+    plt.legend(legends)
+    # Literal Dogshit
+    if save_path:
+        plt.savefig(save_path, format="svg", dpi=1200)
+    else:
+        plt.show()
+
+
+def tabulate_data(trace, data, save_path):
+
+    fig, ax = plt.subplots(figsize=(16, 0.5 * len(data) + 0.5))
+
+    # hide axes
+    fig.patch.set_visible(False)
+    ax.axis("off")
+    ax.axis("tight")
+
+    df = pd.DataFrame(data, )
+    df_r = df.round(decimals=3)
+    sizes = list(map(lambda x: 2**x, range(0, len(data))))
+
+    ax.table(
+        cellText=df_r.values,
+        colLabels=df_r.columns,
+        loc="center",
+        colColours=["#BD93F9"] * len(df_r.columns),
+        rowLabels=sizes,
+        rowColours=["#BD93F9"] * len(df_r),
+    )
+
+    ax.set_title(trace)
+    fig.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, format="svg", dpi=300)
+    else:
+        plt.show()
+
+
+def run_analysis(trace, tlb_size):
+    return map(
+        lambda x: subprocess.check_output(
+            ["cargo", "run", "--release", "--", trace, "--output", "json"],
+            env={
+                **dict(os.environ),
+                **{
+                    "TLB_SIZE": str(x)
+                }
+            },
+        ).decode("utf-8"),
+        [2**i for i in range(0, tlb_size + 1)],
+    )
+
+
+def parse_output(output):
+    return json.loads(output)
+
+
+def generate_visualizations(data, ouput_dir):
+    name, data = data["trace"], data["data"]
+    tlb = list(map(lambda x: 2**x, range(0, len(data))))
+    hit_rates = list(
+        map(lambda x: x * 100.0, list(map(lambda x: x["hit_rate"], data))))
+    miss_rates = list(
+        map(lambda x: x * 100.0, map(lambda x: x["miss_rate"], data)))
+    effective_memory_cycle_rates = list(
+        map(lambda x: x["effective_memory_cycle_rate"], data))
+
+    output = f"{ouput_dir}/{name}"
+    os.makedirs(output, exist_ok=True)
+
+    # clear the plot
+    plot_data(
+        [hit_rates, miss_rates],
+        [tlb, tlb],
+        ["Hit Rate", "Miss Rate"],
+        ["blue", "red"],
+        "TLB Size",
+        "Rate(%)",
+        name,
+        save_path=f"{output}/hit_miss_rate.svg",
+    )
+    plt.close("all")
+
+    # clear the plot
+    plot_data(
+        [effective_memory_cycle_rates],
+        [tlb],
+        ["Effective Memory Cycle Rate"],
+        ["green"],
+        "TLB Size",
+        "CPU Cycles/Memory Access",
+        name,
+        save_path=f"{output}/effective_memory_cycle_rate.svg",
+    )
+    plt.close("all")
+
+    # clear the plot
+    tabulate_data(name, data, save_path=f"{output}/table.svg")
+    plt.close("all")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output",
+                        default="./assets/analysis",
+                        help="Output directory")
+    parser.add_argument("traces", nargs="+", help="Traces to analyze")
+    parser.add_argument("--tlb", type=int, default=16)
+    args = parser.parse_args()
+
+    os.makedirs(args.output, exist_ok=True)
+
+    list(
+        map(
+            lambda x: generate_visualizations(x, args.output),
+            map(
+                lambda x:
+                ({
+                    "trace": os.path.basename(x),
+                    "data": list(map(parse_output, run_analysis(x, args.tlb))),
+                }),
+                args.traces,
+            ),
+        ))
+
+
+if __name__ == "__main__":
+    main()
