@@ -4,17 +4,10 @@ use std::str::FromStr;
 mod tests;
 
 pub type Address = usize;
-pub type MemoryOperation = (Address, MemoryOperationKind);
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum MemoryOperationKind {
-    Read,
-    Write,
-}
 
 #[derive(Debug, PartialEq)]
 pub struct Trace {
-    operations: Vec<MemoryOperation>,
+    operations: Vec<Address>,
 }
 
 impl Trace {
@@ -23,10 +16,9 @@ impl Trace {
             operations: Vec::new(),
         }
     }
-    pub fn operations(&self) -> impl Iterator<Item = &MemoryOperation> {
+    pub fn operations(&self) -> impl Iterator<Item = &Address> {
         self.operations.iter()
     }
-
 }
 
 impl FromStr for Trace {
@@ -36,22 +28,10 @@ impl FromStr for Trace {
         let operations = s
             .lines()
             .map(|line| {
-                // 07b243a0 R for example
-                match line.split_whitespace().collect::<Vec<_>>()[..] {
-                    [address, ty] => {
-                        let address = usize::from_str_radix(address, 16).unwrap();
-                        let ty = match ty {
-                            "R" => MemoryOperationKind::Read,
-                            "W" => MemoryOperationKind::Write,
-                            _ => panic!("Unknown operation type"),
-                        };
-
-                        (address, ty)
-                    }
-                    _ => panic!("Invalid trace line"),
-                }
+                usize::from_str_radix(line.trim(), 16)
+                    .expect("Address cannot be parseable to usize")
             })
-            .collect();
+            .collect::<Vec<usize>>();
 
         Ok(Trace { operations })
     }
