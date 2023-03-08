@@ -30,7 +30,7 @@ where
         let (hits, misses, total) = self
             .trace
             .operations()
-            .fold((0, 0, 0), |res, (address, _)| {
+            .fold((0, 0, 0), |res, address| {
                 match (self.mmu.translate(address), res) {
                     (AddressTranslationResult::Hit(_), (hits, misses, total)) => {
                         (hits + 1, misses, total + 1)

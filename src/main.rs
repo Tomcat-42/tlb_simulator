@@ -53,7 +53,7 @@ impl Cli {
     }
 
     fn to_text(&self, result: SimulationResult) -> String {
-        format!("Hits{}\nMisses{}\nTotal{}\nHit rate: {:.2}% Miss rate: {:.2}%\nEffective Memory Cycle Rate: {:.2} Cycles/Memory Access",
+        format!("Hits: {}\nMisses: {}\nTotal: {}\nHit rate: {:.2}% | Miss rate: {:.2}%\nEffective Memory Cycle Rate: {:.2} | Cycles/Memory Access",
                 result.hits,
                 result.misses,
                 result.total,
